@@ -9,6 +9,10 @@ import (
 )
 
 func GetPlaywright() (*playwright.Playwright, error) {
+	err := playwright.Install()
+	if err != nil {
+		return nil, err
+	}
 	pw, err := playwright.Run()
 	if err != nil {
 		fmt.Printf("failed to initialize playwright: %v\n", err)
