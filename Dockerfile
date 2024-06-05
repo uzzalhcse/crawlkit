@@ -11,7 +11,6 @@ RUN apt-get update && \
 # Set Go environment variables
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-
 # Set the working directory inside the container
 WORKDIR /app
 
@@ -19,13 +18,12 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-
 # Copy the rest of the application code
 COPY . .
 
-# Install playwright cli with right version for later use
+# Install Playwright CLI with the right version for later use
 RUN PWGO_VER=$(grep -oE "playwright-go v\S+" /app/go.mod | sed 's/playwright-go //g') \
-    && go install github.com/playwright-community/playwright-go/cmd/playwright@${PWGO_VER} \
+    && go install github.com/playwright-community/playwright-go/cmd/playwright@${PWGO_VER}
 
 # Install Node.js and Playwright dependencies
 RUN apt-get install -y ca-certificates tzdata curl gnupg && \
@@ -33,11 +31,10 @@ RUN apt-get install -y ca-certificates tzdata curl gnupg && \
     apt-get install -y nodejs && \
     npm install -g playwright && \
     npx playwright install --with-deps && \
-    rm -rf /var/lib/apt/lists/* \
-
+    rm -rf /var/lib/apt/lists/*
 
 # Build the Go application
-RUN go build crawlkit
+RUN go build -o crawlkit .
 
 # Log the contents of the working directory for debugging
 RUN ls -la
@@ -46,6 +43,5 @@ RUN ls -la
 EXPOSE 8080
 
 # Command to run the executable
-#CMD ["./crawlkit"]
-CMD ["sh","app.sh"]
-
+CMD ["./crawlkit"]
+#CMD ["sh","app.sh"]
