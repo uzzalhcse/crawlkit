@@ -34,7 +34,7 @@ COPY . .
 #    rm -rf /var/lib/apt/lists/*
 
 # Build the Go application
-RUN go build -o crawlkit .
+RUN #go build -o crawlkit .
 
 # Log the contents of the working directory for debugging
 RUN ls -la
@@ -43,5 +43,5 @@ RUN ls -la
 EXPOSE 8080
 
 # Command to run the executable
-CMD ["./crawlkit"]
-#CMD ["sh","app.sh"]
+#CMD ["./crawlkit"]
+CMD ["sh","app.sh"]
