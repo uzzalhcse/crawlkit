@@ -11,8 +11,20 @@ RUN apt-get update && \
 # Set Go environment variables
 ENV PATH="/usr/local/go/bin:${PATH}"
 
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the Go modules and install dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+
+# Copy the rest of the application code
+COPY . .
+
 # Install playwright cli with right version for later use
-RUN PWGO_VER=$(grep -oE "playwright-go v\S+" /workdir/go.mod | sed 's/playwright-go //g') \
+RUN PWGO_VER=$(grep -oE "playwright-go v\S+" /app/go.mod | sed 's/playwright-go //g') \
     && go install github.com/playwright-community/playwright-go/cmd/playwright@${PWGO_VER} \
 
 # Install Node.js and Playwright dependencies
@@ -23,16 +35,6 @@ RUN apt-get install -y ca-certificates tzdata curl gnupg && \
     npx playwright install --with-deps && \
     rm -rf /var/lib/apt/lists/* \
 
-
-# Set the working directory inside the container
-WORKDIR /app
-
-# Copy the Go modules and install dependencies
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Copy the rest of the application code
-COPY . .
 
 # Build the Go application
 RUN go build crawlkit
