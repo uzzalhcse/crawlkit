@@ -8,5 +8,6 @@ import (
 func main() {
 	app := crawler.App
 	fmt.Println(app)
+	fmt.Println("Hello World")
 	//TODO: Optimize all PageSelectors with handler
 }
