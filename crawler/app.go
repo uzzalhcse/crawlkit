@@ -17,10 +17,10 @@ var startTime time.Time
 
 type Crawler struct {
 	*Client
-	Config  *config.Config
-	pw      *playwright.Playwright
-	browser playwright.Browser
-	//Page                  playwright.Page
+	Config                *config.Config
+	pw                    *playwright.Playwright
+	browser               playwright.Browser
+	Page                  playwright.Page
 	collection            string
 	url                   string
 	UrlSelectors          []UrlSelector
@@ -84,19 +84,19 @@ func (a *Crawler) Start() {
 	if err != nil {
 		log.Fatalf("failed to launch browser: %v\n", err)
 	}
-	//page, err := GetPage(browser)
-	//if err != nil {
-	//	log.Fatalf("failed to create page: %v\n", err)
-	//}
+	page, err := GetPage(browser)
+	if err != nil {
+		log.Fatalf("failed to create page: %v\n", err)
+	}
 	a.Client = client
 	a.pw = pw
 	a.browser = browser
-	//a.Page = page
+	a.Page = page
 }
 func (a *Crawler) Stop() {
 	defer a.pw.Stop()
 	defer a.browser.Close()
-	//defer a.Page.Close()
+	defer a.Page.Close()
 	duration := time.Since(startTime)
 	slog.Info(fmt.Sprintf("Program stopped in ⚡ %v", duration))
 }
