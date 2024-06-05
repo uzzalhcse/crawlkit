@@ -22,16 +22,16 @@ RUN go mod download
 COPY . .
 
 # Install Playwright CLI with the right version for later use
-RUN PWGO_VER=$(grep -oE "playwright-go v\S+" /app/go.mod | sed 's/playwright-go //g') \
-    && go install github.com/playwright-community/playwright-go/cmd/playwright@${PWGO_VER}
-
-# Install Node.js and Playwright dependencies
-RUN apt-get install -y ca-certificates tzdata curl gnupg && \
-    curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g playwright && \
-    npx playwright install --with-deps && \
-    rm -rf /var/lib/apt/lists/*
+#RUN PWGO_VER=$(grep -oE "playwright-go v\S+" /app/go.mod | sed 's/playwright-go //g') \
+#    && go install github.com/playwright-community/playwright-go/cmd/playwright@${PWGO_VER}
+#
+## Install Node.js and Playwright dependencies
+#RUN apt-get install -y ca-certificates tzdata curl gnupg && \
+#    curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && \
+#    apt-get install -y nodejs && \
+#    npm install -g playwright && \
+#    npx playwright install --with-deps && \
+#    rm -rf /var/lib/apt/lists/*
 
 # Build the Go application
 RUN go build -o crawlkit .
