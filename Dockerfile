@@ -23,4 +23,4 @@ RUN apt-get update && apt-get install -y ca-certificates tzdata \
     && /playwright install --with-deps \
     && rm -rf /var/lib/apt/lists/*
 #CMD ["/myapp"]
-CMD ["sh","app.sh"]
+CMD ["sh","/workdir/app.sh"]
