@@ -18,6 +18,7 @@ RUN GOOS=linux GOARCH=amd64 go build -o /bin/myapp
 # Stage 3: Final
 FROM ubuntu:jammy
 COPY --from=builder /bin/myapp /bin/myapp
+COPY --from=builder /workdir /workdir
 # Install Node.js and Playwright dependencies
 RUN apt-get update && \
     apt-get install -y ca-certificates tzdata curl gnupg && \
