@@ -10,7 +10,9 @@ import (
 func main() {
 	app := crawler.NewCrawler(crawler.Engine{
 		BrowserType:     "chromium",
-		ConcurrentLimit: 10,
+		ConcurrentLimit: 1,
+		BlockResources:  true,
+		IsDynamic:       true,
 	})
 	app.Start()
 	defer app.Stop()
