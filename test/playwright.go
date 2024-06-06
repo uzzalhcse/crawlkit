@@ -1,4 +1,4 @@
-package main
+package test
 
 import (
 	"fmt"
@@ -68,12 +68,12 @@ func GetAsyncPageData(url string, isDynamicSite bool) (*goquery.Document, playwr
 }
 
 func NavigateToURL(page playwright.Page, url string, isDynamicSite bool) (*goquery.Document, error) {
-	waitUntil := playwright.WaitUntilStateDomcontentloaded
-	if isDynamicSite {
-		waitUntil = playwright.WaitUntilStateNetworkidle
-	}
+	//waitUntil := playwright.WaitUntilStateDomcontentloaded
+	//if isDynamicSite {
+	//	waitUntil = playwright.WaitUntilStateNetworkidle
+	//}
 	_, err := page.Goto(url, playwright.PageGotoOptions{
-		WaitUntil: waitUntil,
+		WaitUntil: playwright.WaitUntilStateNetworkidle,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to navigate to URL: %w", err)

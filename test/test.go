@@ -1,4 +1,4 @@
-package main
+package test
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func main() {
+func Kyocera() {
 
 	OpenPage("chromium")
 
@@ -40,4 +40,35 @@ func main() {
 		})
 
 	})
+}
+func Suntory() {
+
+	OpenPage("chromium")
+
+	defer ClosePage()
+	categories := []string{}
+
+	doc, _, err := GetAsyncPageData("https://products.suntory.co.jp?ke=hd", true)
+	if err != nil {
+		slog.Error(err.Error())
+		return
+	}
+
+	html, err := doc.Html()
+	fmt.Println("HTML:", html)
+
+	// Extract data from the HTML
+	doc.Find("ul#drink_list").Each(func(i int, s *goquery.Selection) {
+		s.Find("li a").Each(func(j int, a *goquery.Selection) {
+			href, exists := a.Attr("href")
+			if exists {
+				if !strings.HasPrefix(href, "https") {
+					href = "https://products.suntory.co.jp" + href
+				}
+				fmt.Println("link:", href)
+				categories = append(categories, href)
+			}
+		})
+	})
+	fmt.Println("Total categories:", len(categories))
 }
