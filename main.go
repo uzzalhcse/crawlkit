@@ -1,8 +1,6 @@
 package main
 
-import (
-	"crawlkit/test"
-)
+import "crawlkit/test"
 
 func main() {
 	//test.Kyocera()

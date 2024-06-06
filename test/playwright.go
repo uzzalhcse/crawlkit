@@ -12,10 +12,10 @@ import (
 var page playwright.Page
 
 func OpenPage(browserType string) {
-	err := playwright.Install()
-	if err != nil {
-		slog.Error("Failed to install playwright", "error", err)
-	}
+	//err := playwright.Install()
+	//if err != nil {
+	//	slog.Error("Failed to install playwright", "error", err)
+	//}
 	pw, err := playwright.Run()
 	if err != nil {
 		slog.Info(fmt.Sprintf("Failed to launch playwright: %v", err))
@@ -68,12 +68,13 @@ func GetAsyncPageData(url string, isDynamicSite bool) (*goquery.Document, playwr
 }
 
 func NavigateToURL(page playwright.Page, url string, isDynamicSite bool) (*goquery.Document, error) {
-	//waitUntil := playwright.WaitUntilStateDomcontentloaded
-	//if isDynamicSite {
-	//	waitUntil = playwright.WaitUntilStateNetworkidle
-	//}
+	waitUntil := playwright.WaitUntilStateDomcontentloaded
+	if isDynamicSite {
+		waitUntil = playwright.WaitUntilStateNetworkidle
+	}
+
 	_, err := page.Goto(url, playwright.PageGotoOptions{
-		WaitUntil: playwright.WaitUntilStateNetworkidle,
+		WaitUntil: waitUntil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to navigate to URL: %w", err)

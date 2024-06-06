@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 	"log/slog"
 	"time"
 )
@@ -28,6 +29,11 @@ func MustGetClient() *mongo.Client {
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(databaseURL))
 	if err != nil {
 		panic(err)
+	}
+	// Check if the connection is established
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatalf("Failed to ping MongoDB: %v", err)
 	}
 
 	return client

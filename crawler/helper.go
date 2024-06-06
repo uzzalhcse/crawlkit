@@ -4,7 +4,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/playwright-community/playwright-go"
 	"log"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -123,24 +122,16 @@ func WritePageContentToFile(page playwright.Page) error {
 
 // GenerateFilename generates a filename based on URL and current date
 func GenerateFilename(rawURL string) string {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return "invalid_url.html"
-	}
-	path := u.Path
-
-	// URL-encode the path component
-	encodedPath := url.PathEscape(path)
 
 	// Replace remaining characters not allowed in file names
 	invalidChars := []string{"/", "\\", ":", "*", "?", "\"", "<", ">", "|"}
 	for _, char := range invalidChars {
-		encodedPath = strings.ReplaceAll(encodedPath, char, "_")
+		rawURL = strings.ReplaceAll(rawURL, char, "_")
 	}
 
 	// Combine the encoded path with current date and a suitable extension
 	currentDate := time.Now().Format("2006-01-02")
-	return currentDate + "_" + encodedPath + ".html"
+	return currentDate + "_" + rawURL + ".html"
 }
 
 func GetFullUrl(url string) string {

@@ -83,9 +83,12 @@ func NavigateToURL(page playwright.Page, url string) (*goquery.Document, error) 
 	}
 	_, err := page.Goto(url, playwright.PageGotoOptions{
 		WaitUntil: waitUntil,
-		Timeout:   playwright.Float(60000),
 	})
 	if err != nil {
+		err := WritePageContentToFile(page)
+		if err != nil {
+			return nil, err
+		}
 		return nil, fmt.Errorf("failed to navigate to Url: %w", err)
 	}
 	return GetPageDom(page)

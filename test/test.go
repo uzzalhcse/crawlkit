@@ -43,7 +43,7 @@ func Kyocera() {
 }
 func Suntory() {
 
-	OpenPage("chromium")
+	OpenPage("firefox")
 
 	defer ClosePage()
 	categories := []string{}
@@ -53,9 +53,6 @@ func Suntory() {
 		slog.Error(err.Error())
 		return
 	}
-
-	html, err := doc.Html()
-	fmt.Println("HTML:", html)
 
 	// Extract data from the HTML
 	doc.Find("ul#drink_list").Each(func(i int, s *goquery.Selection) {
