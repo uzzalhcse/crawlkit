@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/playwright-community/playwright-go"
 	"log"
@@ -98,6 +99,7 @@ func WritePageContentToFile(page playwright.Page) error {
 	if err != nil {
 		return err
 	}
+	content = fmt.Sprintf("<!-- Page Url: %s -->\n%s", page.URL(), content)
 	filename := GenerateFilename(page.URL())
 	websiteName := App.Config.Site.Name
 	directory := filepath.Join("storage", "logs", websiteName)
