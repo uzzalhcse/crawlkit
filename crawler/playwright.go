@@ -6,6 +6,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/playwright-community/playwright-go"
 	"os"
+	"strings"
 )
 
 func GetPlaywright() (*playwright.Playwright, error) {
@@ -30,6 +31,13 @@ func GetBrowser(pw *playwright.Playwright, browserType string) (playwright.Brows
 	browserTypeLaunchOptions.Headless = playwright.Bool(!isLocalEnv)
 	browserTypeLaunchOptions.Devtools = playwright.Bool(isLocalEnv)
 
+	// Set proxy options
+	browserTypeLaunchOptions.Proxy = &playwright.Proxy{
+		//Server: "http://34.146.80.168:3000", //topvalu
+		//Server: "http://35.200.88.71:3000", // kyocera
+		Server: "http://35.221.126.218:3000", // markt
+		//Server: "http://35.243.70.45:3000", // ekenko
+	}
 	switch browserType {
 	case "chromium":
 		browser, err = pw.Chromium.Launch(browserTypeLaunchOptions)
@@ -61,9 +69,11 @@ func GetPage(browser playwright.Browser) (playwright.Page, error) {
 	// Conditionally intercept and block images, CSS, and fonts based on configuration
 	if App.engine.BlockResources {
 		err = page.Route("**/*", func(route playwright.Route) {
-			if route.Request().ResourceType() == "image" || route.Request().ResourceType() == "font" {
-				//fmt.Println("Abort request", route.Request().ResourceType())
+
+			if route.Request().ResourceType() == "image" || route.Request().ResourceType() == "font" || strings.Contains(route.Request().URL(), "www.googletagmanager.com") || strings.Contains(route.Request().URL(), "google.com") || strings.Contains(route.Request().URL(), "gstatic.com") {
 				route.Abort()
+
+				//fmt.Println("request", route.Request().ResourceType())
 			} else {
 				route.Continue()
 			}
@@ -83,6 +93,7 @@ func NavigateToURL(page playwright.Page, url string) (*goquery.Document, error) 
 	}
 	_, err := page.Goto(url, playwright.PageGotoOptions{
 		WaitUntil: waitUntil,
+		//Timeout:   playwright.Float(0), // Increase timeout to 60 seconds
 	})
 	if err != nil {
 		logErr := WritePageContentToFile(page)
