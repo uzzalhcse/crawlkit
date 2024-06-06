@@ -9,6 +9,10 @@ services:
       - MONGO_URL=mongodb://lazuli:x1RWo6cqFtHiaAHce5HB@mongo:27017/admin
     depends_on:
       - mongo
+    volumes:
+      - .:/app  # Sync current directory with /app in the container
+      - /app/go/pkg/mod  # Cache Go modules for faster builds
+      - /app/node_modules  # Cache Node.js modules for faster builds
 
   mongo:
     image: mongo:latest
