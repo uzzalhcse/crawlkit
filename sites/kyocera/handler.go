@@ -23,7 +23,6 @@ func productNameHandler(document *goquery.Document, url string) string {
 	return strings.Trim(document.Find(".details .intro h2").Text(), " \n")
 }
 
-func getUrlHandler(document *goquery.Document, url string) string {
-	fmt.Println("getUrlHandler Url", url)
-	return url
+func getUrlHandler(document *goquery.Document, urlCollection crawler.UrlCollection) string {
+	return urlCollection.Url
 }

@@ -46,7 +46,6 @@ func getJanService(doc *goquery.Document, urlCollection crawler.UrlCollection) s
 }
 
 func getUrlHandler(document *goquery.Document, urlCollection crawler.UrlCollection) string {
-	fmt.Println("getUrlHandler Url", urlCollection.Url)
 	return urlCollection.Url
 }
 

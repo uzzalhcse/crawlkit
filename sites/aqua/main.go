@@ -11,7 +11,7 @@ const siteUrl = "https://aqua-has.com"
 func main() {
 	app := crawler.NewCrawler(siteName, siteUrl, crawler.Engine{
 		BrowserType:     "chromium",
-		ConcurrentLimit: 1,
+		ConcurrentLimit: 2,
 		DevCrawlLimit:   100,
 		BlockResources:  true,
 		BlockedURLs:     []string{},

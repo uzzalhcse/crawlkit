@@ -10,6 +10,13 @@ import (
 	"sync"
 )
 
+// Proxies to be used
+var proxies = []string{
+	"http://34.146.11.125:3000",  // proxy-server-1
+	"http://34.146.155.165:3000", // proxy-server-2
+	"http://34.143.176.68:3000",  // proxy-server-3
+}
+
 // CrawlUrls handles both dynamic crawling and URL extraction based on the provided function or selector
 func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 	urlCollections := App.GetUrlCollections(collection)
@@ -28,22 +35,30 @@ func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 	}
 	close(urlChan)
 
-	for i := 0; i < App.engine.ConcurrentLimit; i++ { // Number of concurrent workers
+	proxyCount := len(proxies)
+	batchSize := App.engine.ConcurrentLimit
+
+	for i := 0; i < proxyCount; i++ {
 		wg.Add(1)
-		go func() {
+		go func(proxyIndex int) {
 			defer wg.Done()
 
-			page, err := GetPage(App.browser)
+			browser, page, err := GetBrowserPage(App.pw, App.engine.BrowserType, proxies[proxyIndex])
 			if err != nil {
-				log.Fatalf("failed to create page: %v\n", err)
+				log.Fatalf("failed to initialize browser with proxy: %v\n", err)
 			}
-			defer page.Close()
+			defer browser.Close()
 
-			for urlCollection := range urlChan {
+			defer page.Close()
+			for j := 0; j < batchSize; j++ {
+				urlCollection, more := <-urlChan
+				if !more {
+					break
+				}
 				if !shouldContinue() {
 					break
 				}
-				log.Printf("Crawling %s", urlCollection.Url)
+				log.Printf("Crawling %s using proxy %s", urlCollection.Url, proxies[proxyIndex])
 
 				doc, err := NavigateToURL(page, urlCollection.Url)
 				if err != nil {
@@ -75,7 +90,7 @@ func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 					log.Println("Result channel is full, dropping result")
 				}
 			}
-		}()
+		}(i)
 	}
 
 	go func() {
@@ -107,20 +122,31 @@ func (e *Engine) CrawlPageDetail(collection string) {
 	}
 	close(urlChan)
 
-	for i := 0; i < App.engine.ConcurrentLimit; i++ { // Number of concurrent workers
+	proxyCount := len(proxies)
+	batchSize := App.engine.ConcurrentLimit
+
+	for i := 0; i < proxyCount; i++ {
 		wg.Add(1)
-		go func() {
+		go func(proxyIndex int) {
 			defer wg.Done()
-			page, err := GetPage(App.browser)
+
+			browser, page, err := GetBrowserPage(App.pw, App.engine.BrowserType, proxies[proxyIndex])
 			if err != nil {
-				log.Fatalf("failed to create page: %v\n", err)
+				log.Fatalf("failed to initialize browser with proxy: %v\n", err)
 			}
+			defer browser.Close()
+
 			defer page.Close()
 
-			for urlCollection := range urlChan {
+			for j := 0; j < batchSize; j++ {
+				urlCollection, more := <-urlChan
+				if !more {
+					break
+				}
 				if isLocalEnv && len(resultChan) >= App.engine.DevCrawlLimit {
 					return
 				}
+				log.Printf("Crawling %s using proxy %s", urlCollection.Url, proxies[proxyIndex])
 
 				document, err := NavigateToURL(page, urlCollection.Url)
 				productDetail := handleProductDetail(document, urlCollection, err)
@@ -130,7 +156,7 @@ func (e *Engine) CrawlPageDetail(collection string) {
 					log.Println("Result channel is full, dropping product detail")
 				}
 			}
-		}()
+		}(i)
 	}
 
 	go func() {
