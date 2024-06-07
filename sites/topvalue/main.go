@@ -1,12 +1,15 @@
 package main
 
 import (
+	"crawlkit/constant"
 	"crawlkit/crawler"
-	"crawlkit/crawler/constant"
 )
 
+const siteName = "topvalu"
+const siteUrl = "https://www.topvalu.net/"
+
 func main() {
-	app := crawler.NewCrawler(crawler.Engine{
+	app := crawler.NewCrawler(siteName, siteUrl, crawler.Engine{
 		BrowserType:     "chromium",
 		ConcurrentLimit: 1,
 		BlockResources:  true,
@@ -23,6 +26,6 @@ func handleDynamicCrawl(app *crawler.Crawler) {
 		FindSelector: "a.pulldown__ttl",
 		Attr:         "href",
 	}
-	app.Collection(constant.CATEGORIES).
-		CrawlUrls(constant.SITES, categorySelector)
+	app.Collection(constant.Categories).
+		CrawlUrls(app.GetBaseCollection(), categorySelector)
 }

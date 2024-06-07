@@ -1,12 +1,10 @@
 package crawler
 
 import (
-	"crawlkit/crawler/constant"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/playwright-community/playwright-go"
 	"os"
-	"strings"
 )
 
 func GetPlaywright() (*playwright.Playwright, error) {
@@ -26,17 +24,16 @@ func GetBrowser(pw *playwright.Playwright, browserType string) (playwright.Brows
 	var browser playwright.Browser
 	var err error
 
-	isLocalEnv := App.Config.Site.SiteEnv == constant.LOCAL
+	isLocalEnv := App.Config.Site.SiteEnv == Local
 	var browserTypeLaunchOptions playwright.BrowserTypeLaunchOptions
 	browserTypeLaunchOptions.Headless = playwright.Bool(!isLocalEnv)
 	browserTypeLaunchOptions.Devtools = playwright.Bool(isLocalEnv)
 
-	// Set proxy options
-	browserTypeLaunchOptions.Proxy = &playwright.Proxy{
-		//Server: "http://34.146.80.168:3000", //topvalu
-		//Server: "http://35.200.88.71:3000", // kyocera
-		Server: "http://35.221.126.218:3000", // markt
-		//Server: "http://35.243.70.45:3000", // ekenko
+	if App.Config.Site.Proxy != "" {
+		// Set proxy options
+		browserTypeLaunchOptions.Proxy = &playwright.Proxy{
+			Server: App.Config.Site.Proxy,
+		}
 	}
 	switch browserType {
 	case "chromium":
@@ -66,14 +63,16 @@ func GetPage(browser playwright.Browser) (playwright.Page, error) {
 		return nil, fmt.Errorf("failed to create page: %w", err)
 	}
 
-	// Conditionally intercept and block images, CSS, and fonts based on configuration
+	// Conditionally intercept and block resources based on configuration
 	if App.engine.BlockResources {
-		err = page.Route("**/*", func(route playwright.Route) {
+		err := page.Route("**/*", func(route playwright.Route) {
+			req := route.Request()
+			resourceType := req.ResourceType()
+			url := req.URL()
 
-			if route.Request().ResourceType() == "image" || route.Request().ResourceType() == "font" || strings.Contains(route.Request().URL(), "www.googletagmanager.com") || strings.Contains(route.Request().URL(), "google.com") || strings.Contains(route.Request().URL(), "gstatic.com") {
+			// Check if the resource should be blocked based on resource type or URL
+			if shouldBlockResource(resourceType, url) {
 				route.Abort()
-
-				//fmt.Println("request", route.Request().ResourceType())
 			} else {
 				route.Continue()
 			}
@@ -91,6 +90,7 @@ func NavigateToURL(page playwright.Page, url string) (*goquery.Document, error) 
 	if App.engine.IsDynamic {
 		waitUntil = playwright.WaitUntilStateNetworkidle
 	}
+
 	_, err := page.Goto(url, playwright.PageGotoOptions{
 		WaitUntil: waitUntil,
 		//Timeout:   playwright.Float(0), // Increase timeout to 60 seconds
@@ -100,7 +100,6 @@ func NavigateToURL(page playwright.Page, url string) (*goquery.Document, error) 
 		if logErr != nil {
 			return nil, logErr
 		}
-		fmt.Println("failed to navigate to Url: %w", err)
 		//return nil, fmt.Errorf("failed to navigate to Url: %w", err)
 	}
 	return GetPageDom(page)

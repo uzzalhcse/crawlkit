@@ -5,6 +5,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/playwright-community/playwright-go"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -101,8 +102,7 @@ func WritePageContentToFile(page playwright.Page) error {
 	}
 	content = fmt.Sprintf("<!-- Page Url: %s -->\n%s", page.URL(), content)
 	filename := GenerateFilename(page.URL())
-	websiteName := App.Config.Site.Name
-	directory := filepath.Join("storage", "logs", websiteName)
+	directory := filepath.Join("storage", "logs", App.Name)
 	err = os.MkdirAll(directory, 0755)
 	if err != nil {
 		return err
@@ -142,7 +142,32 @@ func GetFullUrl(url string) string {
 		// If href is already a full URL, don't concatenate with baseUrl
 		fullUrl = url
 	} else {
-		fullUrl = App.Config.Site.BaseUrl + url
+		fullUrl = App.BaseUrl + url
 	}
 	return fullUrl
+}
+
+// shouldBlockResource checks if a resource should be blocked based on its type and URL.
+func shouldBlockResource(resourceType string, url string) bool {
+	if resourceType == "image" || resourceType == "font" {
+		return true
+	}
+
+	for _, blockedURL := range App.engine.BlockedURLs {
+		if strings.Contains(url, blockedURL) {
+			return true
+		}
+	}
+
+	return false
+}
+func getBaseUrl(urlString string) string {
+	parsedURL, err := url.Parse(urlString)
+	if err != nil {
+		fmt.Println("failed to parse Url:", "Error", err)
+		return ""
+	}
+
+	baseURL := parsedURL.Scheme + "://" + parsedURL.Host
+	return baseURL
 }

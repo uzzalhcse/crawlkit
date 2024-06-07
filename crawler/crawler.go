@@ -1,7 +1,6 @@
 package crawler
 
 import (
-	"crawlkit/crawler/constant"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/playwright-community/playwright-go"
@@ -15,13 +14,14 @@ import (
 func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 	urlCollections := App.GetUrlCollections(collection)
 	var items []UrlCollection
-	isLocalEnv := App.Config.Site.SiteEnv == constant.LOCAL
+	isLocalEnv := App.Config.Site.SiteEnv == Local
 	shouldContinue := func() bool {
 		return !isLocalEnv || len(items) < App.engine.DevCrawlLimit
 	}
 
 	var wg sync.WaitGroup
 	urlChan := make(chan UrlCollection, len(urlCollections))
+	resultChan := make(chan []UrlCollection, len(urlCollections))
 
 	for _, urlCollection := range urlCollections {
 		urlChan <- urlCollection
@@ -37,6 +37,8 @@ func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 			if err != nil {
 				log.Fatalf("failed to create page: %v\n", err)
 			}
+			defer page.Close()
+
 			for urlCollection := range urlChan {
 				if !shouldContinue() {
 					break
@@ -49,16 +51,13 @@ func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 					continue
 				}
 
+				var results []UrlCollection
 				switch v := processor.(type) {
 				case func(*goquery.Document, *UrlCollection, playwright.Page) []UrlCollection:
-					results := v(doc, &urlCollection, page)
-					items = append(items, results...)
-					App.Insert(items, urlCollection.Url)
+					results = v(doc, &urlCollection, page)
 
 				case UrlSelector:
-					results := processDocument(doc, v, urlCollection)
-					items = append(items, results...)
-					App.Insert(items, urlCollection.Url)
+					results = processDocument(doc, v, urlCollection)
 
 				default:
 					funcValue := reflect.ValueOf(processor)
@@ -70,20 +69,34 @@ func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 					}
 				}
 
+				select {
+				case resultChan <- results:
+				default:
+					log.Println("Result channel is full, dropping result")
+				}
 			}
-
-			page.Close()
 		}()
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	for results := range resultChan {
+		items = append(items, results...)
+		for _, item := range results {
+			App.Insert(items, item.Url)
+		}
+	}
+
 	log.Printf("Total %v urls: %v", App.collection, len(items))
 }
 
 // CrawlPageDetail handles crawling of page details with concurrency
 func (e *Engine) CrawlPageDetail(collection string) {
 	urlCollections := App.GetUrlCollections(collection)
-	isLocalEnv := App.Config.Site.SiteEnv == constant.LOCAL
+	isLocalEnv := App.Config.Site.SiteEnv == Local
 
 	var wg sync.WaitGroup
 	urlChan := make(chan UrlCollection, len(urlCollections))
@@ -102,6 +115,8 @@ func (e *Engine) CrawlPageDetail(collection string) {
 			if err != nil {
 				log.Fatalf("failed to create page: %v\n", err)
 			}
+			defer page.Close()
+
 			for urlCollection := range urlChan {
 				if isLocalEnv && len(resultChan) >= App.engine.DevCrawlLimit {
 					return
@@ -109,9 +124,12 @@ func (e *Engine) CrawlPageDetail(collection string) {
 
 				document, err := NavigateToURL(page, urlCollection.Url)
 				productDetail := handleProductDetail(document, urlCollection, err)
-				resultChan <- productDetail
+				select {
+				case resultChan <- productDetail:
+				default:
+					log.Println("Result channel is full, dropping product detail")
+				}
 			}
-			page.Close()
 		}()
 	}
 

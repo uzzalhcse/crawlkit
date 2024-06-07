@@ -6,16 +6,7 @@ type Engine struct {
 	IsDynamic       bool
 	DevCrawlLimit   int
 	BlockResources  bool
-}
-
-func NewEngine(browserType string, concurrentLimit int, isDynamic bool, crawlLimit int, blockResources bool) *Engine {
-	return &Engine{
-		BrowserType:     browserType,
-		ConcurrentLimit: concurrentLimit,
-		IsDynamic:       isDynamic,
-		DevCrawlLimit:   crawlLimit,
-		BlockResources:  blockResources,
-	}
+	BlockedURLs     []string
 }
 
 func (e *Engine) SetBrowserType(browserType string) *Engine {

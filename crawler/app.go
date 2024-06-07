@@ -2,7 +2,6 @@ package crawler
 
 import (
 	"crawlkit/config"
-	"crawlkit/crawler/constant"
 	"fmt"
 	"github.com/playwright-community/playwright-go"
 	"log"
@@ -15,12 +14,17 @@ var Once sync.Once
 var App *Crawler
 var startTime time.Time
 
+const Local = "local"
+const baseCollection = "sites"
+
 type Crawler struct {
 	*Client
+	Name                  string
+	Url                   string
+	BaseUrl               string
 	Config                *config.Config
 	pw                    *playwright.Playwright
 	browser               playwright.Browser
-	Page                  playwright.Page
 	collection            string
 	url                   string
 	UrlSelectors          []UrlSelector
@@ -28,7 +32,7 @@ type Crawler struct {
 	engine                *Engine
 }
 
-func NewCrawler(engines ...Engine) *Crawler {
+func NewCrawler(name, url string, engines ...Engine) *Crawler {
 	Once.Do(func() {
 		startTime = time.Now()
 		slog.Info("Program started! 🚀")
@@ -40,6 +44,12 @@ func NewCrawler(engines ...Engine) *Crawler {
 			IsDynamic:       false,
 			DevCrawlLimit:   10,
 			BlockResources:  false,
+			BlockedURLs: []string{
+				"www.googletagmanager.com",
+				"google.com",
+				"googleapis.com",
+				"gstatic.com",
+			},
 		}
 
 		// Override defaults with provided engine configuration if available
@@ -60,11 +70,15 @@ func NewCrawler(engines ...Engine) *Crawler {
 			if eng.BlockResources {
 				defaultEngine.BlockResources = eng.BlockResources
 			}
+			defaultEngine.BlockedURLs = append(defaultEngine.BlockedURLs, eng.BlockedURLs...)
 		}
 
 		App = &Crawler{
+			Name:       name,
+			Url:        url,
+			BaseUrl:    getBaseUrl(url),
 			Config:     config.NewConfig(),
-			collection: constant.SITES,
+			collection: App.GetBaseCollection(),
 			engine:     &defaultEngine,
 		}
 	})
@@ -84,22 +98,23 @@ func (a *Crawler) Start() {
 	if err != nil {
 		log.Fatalf("failed to launch browser: %v\n", err)
 	}
-	page, err := GetPage(browser)
-	if err != nil {
-		log.Fatalf("failed to create page: %v\n", err)
-	}
+
 	a.Client = client
 	a.pw = pw
 	a.browser = browser
-	a.Page = page
 }
+
 func (a *Crawler) Stop() {
-	defer a.pw.Stop()
-	defer a.browser.Close()
-	defer a.Page.Close()
+	if a.browser != nil {
+		a.browser.Close()
+	}
+	if a.pw != nil {
+		a.pw.Stop()
+	}
 	duration := time.Since(startTime)
 	slog.Info(fmt.Sprintf("Program stopped in ⚡ %v", duration))
 }
+
 func (a *Crawler) Collection(collection string) *Engine {
 	a.collection = collection
 	return a.engine
@@ -111,4 +126,8 @@ func (a *Crawler) GetUrl() string {
 
 func (a *Crawler) GetCollection() string {
 	return a.collection
+}
+
+func (a *Crawler) GetBaseCollection() string {
+	return baseCollection
 }

@@ -1,15 +1,18 @@
 package main
 
 import (
+	"crawlkit/constant"
 	"crawlkit/crawler"
-	"crawlkit/crawler/constant"
 )
 
 /*
 This is under development
 */
+const siteName = "as1"
+const siteUrl = "https://axel.as-1.co.jp/"
+
 func main() {
-	app := crawler.NewCrawler(crawler.Engine{
+	app := crawler.NewCrawler(siteName, siteUrl, crawler.Engine{
 		BrowserType:     "chromium",
 		ConcurrentLimit: 10,
 		IsDynamic:       false,
@@ -20,21 +23,21 @@ func main() {
 
 }
 func handleDynamicCrawl(app *crawler.Crawler) {
-	//subCategorySelector := crawler.UrlSelector{
-	//	Selector:     "#af-categories-list > li",
-	//	SingleResult: false,
-	//	FindSelector: "a",
-	//	Attr:         "href",
-	//}
+	subCategorySelector := crawler.UrlSelector{
+		Selector:     "#af-categories-list > li",
+		SingleResult: false,
+		FindSelector: "a",
+		Attr:         "href",
+	}
 	productSelector := crawler.UrlSelector{
 		Selector:     "ul.product-list li.product-item,ul.heightLineParent.clearfix li",
 		SingleResult: false,
 		FindSelector: "a,div dl dt a",
 		Attr:         "href",
 	}
-	//app.Collection(constant.CATEGORIES).CrawlUrls(constant.SITES, categoryHandler)
-	//app.Collection(constant.SUB_CATEGORIES).CrawlUrls(constant.CATEGORIES, subCategorySelector)
-	app.Collection(constant.PRODUCTS).CrawlUrls(constant.SUB_CATEGORIES, productSelector)
+	app.Collection(constant.Categories).CrawlUrls(app.GetBaseCollection(), categoryHandler)
+	app.Collection(constant.SubCategories).CrawlUrls(constant.Categories, subCategorySelector)
+	app.Collection(constant.Products).CrawlUrls(constant.SubCategories, productSelector)
 
 	app.ProductDetailSelector = crawler.ProductDetailSelector{
 		Jan: "",
@@ -54,5 +57,5 @@ func handleDynamicCrawl(app *crawler.Crawler) {
 		Category:     "",
 		Description:  "",
 	}
-	//app.Collection(constant.PRODUCT_DETAILS).CrawlPageDetail(app.GetUrlsFromCollection(constant.PRODUCTS))
+	app.Collection(constant.ProductDetails).CrawlPageDetail(constant.Products)
 }

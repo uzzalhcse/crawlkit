@@ -1,12 +1,15 @@
 package main
 
 import (
+	"crawlkit/constant"
 	"crawlkit/crawler"
-	"crawlkit/crawler/constant"
 )
 
+const siteName = "markt"
+const siteUrl = "https://markt-mall.jp/"
+
 func main() {
-	app := crawler.NewCrawler(crawler.Engine{
+	app := crawler.NewCrawler(siteName, siteUrl, crawler.Engine{
 		BrowserType:     "chromium",
 		ConcurrentLimit: 1,
 		DevCrawlLimit:   1,
@@ -20,15 +23,15 @@ func main() {
 }
 func handleDynamicCrawl(app *crawler.Crawler) {
 
-	//app.Collection(constant.CATEGORIES).CrawlUrls(constant.SITES, crawler.UrlSelector{
-	//	Selector:       ".l-category-button-list__in",
-	//	SingleResult:   false,
-	//	FindSelector:   "a.c-category-button",
-	//	Attr:           "href",
-	//	ToCollection:   constant.CATEGORIES,
-	//	FromCollection: constant.SITES,
-	//})
-	app.Collection(constant.PRODUCTS).CrawlUrls(constant.CATEGORIES, handleProducts)
+	app.Collection(constant.Categories).CrawlUrls(app.GetBaseCollection(), crawler.UrlSelector{
+		Selector:       ".l-category-button-list__in",
+		SingleResult:   false,
+		FindSelector:   "a.c-category-button",
+		Attr:           "href",
+		ToCollection:   constant.Categories,
+		FromCollection: app.GetBaseCollection(),
+	})
+	app.Collection(constant.Products).CrawlUrls(constant.Categories, handleProducts)
 
 	app.ProductDetailSelector = crawler.ProductDetailSelector{
 		Jan: "",
@@ -50,5 +53,5 @@ func handleDynamicCrawl(app *crawler.Crawler) {
 		Category:     "",
 		Description:  "",
 	}
-	//app.Collection(constant.PRODUCT_DETAILS).CrawlPageDetail(constant.PRODUCTS)
+	app.Collection(constant.ProductDetails).CrawlPageDetail(constant.Products)
 }

@@ -1,18 +1,22 @@
 package main
 
 import (
+	"crawlkit/constant"
 	"crawlkit/crawler"
-	"crawlkit/crawler/constant"
 	"github.com/PuerkitoBio/goquery"
 	"strings"
 )
 
+const siteName = "kyocera"
+const siteUrl = "https://www.kyocera.co.jp/prdct/tool/category/product"
+
 func main() {
-	app := crawler.NewCrawler(crawler.Engine{
+	app := crawler.NewCrawler(siteName, siteUrl, crawler.Engine{
 		BrowserType:     "chromium",
-		ConcurrentLimit: 1,
+		ConcurrentLimit: 10,
+		IsDynamic:       false,
 		BlockResources:  true,
-		//IsDynamic: false,
+		BlockedURLs:     []string{"syncsearch.jp"},
 	})
 	app.Start()
 	defer app.Stop()
@@ -57,11 +61,11 @@ func handleDynamicCrawl(app *crawler.Crawler) {
 		FindSelector: "a,div dl dt a",
 		Attr:         "href",
 	}
-	app.Collection(constant.CATEGORIES).CrawlUrls(constant.SITES, categorySelector)
-	app.Collection(constant.PRODUCTS).CrawlUrls(constant.SITES, categoryProductSelector)
-	app.Collection(constant.OTHER).CrawlUrls(constant.SITES, categoryOtherSelector)
-	app.Collection(constant.PRODUCTS).CrawlUrls(constant.CATEGORIES, productSelector)
-	app.Collection(constant.PRODUCTS).CrawlUrls(constant.OTHER, productSelector)
+	app.Collection(constant.Categories).CrawlUrls(app.GetBaseCollection(), categorySelector)
+	app.Collection(constant.Products).CrawlUrls(app.GetBaseCollection(), categoryProductSelector)
+	app.Collection(constant.Other).CrawlUrls(app.GetBaseCollection(), categoryOtherSelector)
+	app.Collection(constant.Products).CrawlUrls(constant.Categories, productSelector)
+	app.Collection(constant.Products).CrawlUrls(constant.Other, productSelector)
 
 	app.ProductDetailSelector = crawler.ProductDetailSelector{
 		Jan: "",
@@ -81,5 +85,5 @@ func handleDynamicCrawl(app *crawler.Crawler) {
 		Category:     "",
 		Description:  "",
 	}
-	app.Collection(constant.PRODUCT_DETAILS).CrawlPageDetail(constant.PRODUCTS)
+	app.Collection(constant.ProductDetails).CrawlPageDetail(constant.Products)
 }

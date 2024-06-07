@@ -1,15 +1,20 @@
 package main
 
 import (
+	"crawlkit/constant"
 	"crawlkit/crawler"
-	"crawlkit/crawler/constant"
 )
 
+const siteName = "aqua"
+const siteUrl = "https://aqua-has.com"
+
 func main() {
-	app := crawler.NewCrawler(crawler.Engine{
+	app := crawler.NewCrawler(siteName, siteUrl, crawler.Engine{
 		BrowserType:     "chromium",
 		ConcurrentLimit: 1,
-		DevCrawlLimit:   200,
+		DevCrawlLimit:   100,
+		BlockResources:  true,
+		BlockedURLs:     []string{},
 	})
 	app.Start()
 	defer app.Stop()
@@ -23,8 +28,8 @@ func handleDynamicCrawl(app *crawler.Crawler) {
 			SingleResult:   true,
 			FindSelector:   "a",
 			Attr:           "href",
-			ToCollection:   constant.CATEGORIES,
-			FromCollection: constant.SITES,
+			ToCollection:   constant.Categories,
+			FromCollection: app.GetBaseCollection(),
 		})
 	app.PageSelector(
 		crawler.UrlSelector{
@@ -32,8 +37,8 @@ func handleDynamicCrawl(app *crawler.Crawler) {
 			SingleResult:   false,
 			FindSelector:   "a",
 			Attr:           "href",
-			ToCollection:   constant.PRODUCTS,
-			FromCollection: constant.CATEGORIES,
+			ToCollection:   constant.Products,
+			FromCollection: constant.Categories,
 		})
 	app.StartUrlCrawling()
 
@@ -57,6 +62,5 @@ func handleDynamicCrawl(app *crawler.Crawler) {
 		Category:     "",
 		Description:  "",
 	}
-	app.Collection(constant.PRODUCT_DETAILS).
-		CrawlPageDetail(constant.PRODUCTS)
+	app.Collection(constant.ProductDetails).CrawlPageDetail(constant.Products)
 }

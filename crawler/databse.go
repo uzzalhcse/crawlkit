@@ -39,7 +39,7 @@ func MustGetClient() *mongo.Client {
 	return client
 }
 func (client *Client) GetCollection(collectionName string) *mongo.Collection {
-	collection := client.Database(App.Config.Site.Name).Collection(collectionName)
+	collection := client.Database(App.Name).Collection(collectionName)
 	ensureUniqueIndex(collection)
 	return collection
 }
@@ -87,8 +87,8 @@ func (client *Client) NewSite() {
 	var documents interface{}
 
 	documents = SiteCollection{
-		Url:       App.Config.Site.Url,
-		BaseUrl:   App.Config.Site.BaseUrl,
+		Url:       App.Url,
+		BaseUrl:   App.BaseUrl,
 		Status:    false,
 		Attempts:  0,
 		StartedAt: time.Now(),

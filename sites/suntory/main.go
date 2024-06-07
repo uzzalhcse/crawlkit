@@ -1,12 +1,15 @@
 package main
 
 import (
+	"crawlkit/constant"
 	"crawlkit/crawler"
-	"crawlkit/crawler/constant"
 )
 
+const siteName = "suntory"
+const siteUrl = "https://products.suntory.co.jp"
+
 func main() {
-	app := crawler.NewCrawler(crawler.Engine{
+	app := crawler.NewCrawler(siteName, siteUrl, crawler.Engine{
 		BrowserType:     "chromium",
 		ConcurrentLimit: 10,
 		IsDynamic:       true,
@@ -48,9 +51,9 @@ func handleDynamicCrawl(app *crawler.Crawler) {
 	//		}
 	//	},
 	//}
-	//app.Collection(constant.CATEGORIES).SetCrawlLimit(3).CrawlUrls(constant.SITES, categorySelector)
-	//app.Collection(constant.SUB_CATEGORIES).SetCrawlLimit(5).CrawlUrls(constant.CATEGORIES, subCategorySelector)
-	//app.Collection(constant.PRODUCTS).CrawlUrls(constant.SUB_CATEGORIES, productSelector)
+	//app.Collection(constant.Categories).SetCrawlLimit(3).CrawlUrls(app.GetBaseCollection(), categorySelector)
+	//app.Collection(constant.SUB_CATEGORIES).SetCrawlLimit(5).CrawlUrls(constant.Categories, subCategorySelector)
+	//app.Collection(constant.Products).CrawlUrls(constant.SUB_CATEGORIES, productSelector)
 
 	app.ProductDetailSelector = crawler.ProductDetailSelector{
 		Jan: getJanService,
@@ -73,5 +76,5 @@ func handleDynamicCrawl(app *crawler.Crawler) {
 		Description: getDescriptionService,
 		ListPrice:   getListPriceService,
 	}
-	app.Collection(constant.PRODUCT_DETAILS).IsDynamicPage(false).SetCrawlLimit(2).CrawlPageDetail(constant.PRODUCTS)
+	app.Collection(constant.ProductDetails).IsDynamicPage(false).SetCrawlLimit(2).CrawlPageDetail(constant.Products)
 }

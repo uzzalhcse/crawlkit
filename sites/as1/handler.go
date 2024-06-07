@@ -4,11 +4,12 @@ import (
 	"crawlkit/crawler"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/playwright-community/playwright-go"
 	"log/slog"
 	"strings"
 )
 
-func categoryHandler(document *goquery.Document, urlCollection *crawler.UrlCollection) []crawler.UrlCollection {
+func categoryHandler(document *goquery.Document, urlCollection *crawler.UrlCollection, page playwright.Page) []crawler.UrlCollection {
 
 	categoryUrls := []crawler.UrlCollection{}
 	categoryDiv := document.Find("#menuList > div.submenu > div.accordion > dl")
@@ -20,7 +21,7 @@ func categoryHandler(document *goquery.Document, urlCollection *crawler.UrlColle
 	categoryDiv.Slice(0, totalCats-3).Each(func(i int, cat *goquery.Selection) {
 		cat.Find("dd > div > ul > li ul > li ul > li").Each(func(j int, lMain *goquery.Selection) {
 			if href, ok := lMain.Find("a").Attr("href"); ok {
-				fullUrl := crawler.App.Config.Site.BaseUrl + href
+				fullUrl := crawler.App.BaseUrl + href
 				categoryUrls = append(categoryUrls, crawler.UrlCollection{
 					Url:      fullUrl,
 					MetaData: nil,

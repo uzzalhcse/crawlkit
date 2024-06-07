@@ -16,7 +16,7 @@ func categoryHandler(document *goquery.Document, urlCollection crawler.UrlCollec
 		s.Find("a").Each(func(j int, h *goquery.Selection) {
 			href, ok := h.Attr("href")
 			if ok {
-				fullUrl := crawler.App.Config.Site.BaseUrl + href
+				fullUrl := crawler.App.BaseUrl + href
 
 				items = append(items, fullUrl)
 			} else {
