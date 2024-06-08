@@ -2,10 +2,8 @@ package main
 
 import (
 	"crawlkit/crawler"
-	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/playwright-community/playwright-go"
-	"log/slog"
 	"strings"
 )
 
@@ -26,9 +24,8 @@ func categoryHandler(document *goquery.Document, urlCollection *crawler.UrlColle
 					Url:      fullUrl,
 					MetaData: nil,
 				})
-				slog.Info(fullUrl)
 			} else {
-				slog.Error("Category URL not found.")
+				crawler.App.Logger.Error("Category URL not found.")
 			}
 		})
 	})
@@ -36,13 +33,12 @@ func categoryHandler(document *goquery.Document, urlCollection *crawler.UrlColle
 	return categoryUrls
 }
 
-func productCodeHandler(document *goquery.Document, url string) []string {
-	fmt.Println("productCodeHandler Url", url)
-	urlParts := strings.Split(strings.Trim(url, "/"), "/")
+func productCodeHandler(document *goquery.Document, urlCollection crawler.UrlCollection) []string {
+	urlParts := strings.Split(strings.Trim(urlCollection.Url, "/"), "/")
 	return []string{urlParts[len(urlParts)-1]}
 }
 
-func productNameHandler(document *goquery.Document, url string) string {
+func productNameHandler(document *goquery.Document, urlCollection crawler.UrlCollection) string {
 	return strings.Trim(document.Find(".details .intro h2").Text(), " \n")
 }
 

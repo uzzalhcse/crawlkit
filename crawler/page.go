@@ -23,7 +23,7 @@ func handleProductDetail(document *goquery.Document, urlCollection UrlCollection
 
 		// Get field value type
 
-		switch fieldValue.Interface().(type) {
+		switch v := fieldValue.Interface().(type) {
 		case string:
 			// String value, do nothing
 		case func(*goquery.Document, UrlCollection) []string:
@@ -52,10 +52,9 @@ func handleProductDetail(document *goquery.Document, urlCollection UrlCollection
 
 			reflect.ValueOf(productDetail).Elem().FieldByName(fieldName).Set(reflect.ValueOf(stringSlice))
 		default:
-			//fmt.Printf("Invalid Type of Property: %s: %v\n", fieldName, fieldValue)
+			App.Logger.Fatal("Unsupported %s Handler/Selector: %T", fieldName, v)
 		}
 	}
-	//fmt.Println("productDetail", productDetail)
 
 	return productDetail
 }

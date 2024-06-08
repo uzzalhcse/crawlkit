@@ -2,7 +2,6 @@ package main
 
 import (
 	"crawlkit/crawler"
-	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/playwright-community/playwright-go"
 	"strings"
@@ -16,14 +15,14 @@ func handleProducts(document *goquery.Document, collection *crawler.UrlCollectio
 
 	items, err := page.Locator("ul.p-card-list-no-scroll li.p-product-card.p-product-card--large").All()
 	if err != nil {
-		fmt.Println("Error fetching items:", err)
+		crawler.App.Logger.Info("Error fetching items:", err)
 		return urls
 	}
 
 	for i, item := range items {
 		err := item.Click(playwright.LocatorClickOptions{Timeout: playwright.Float(10000)})
 		if err != nil {
-			fmt.Println("Failed to click on Product Card:", err)
+			crawler.App.Logger.Error("Failed to click on Product Card:", err)
 			continue
 		}
 
@@ -32,14 +31,13 @@ func handleProducts(document *goquery.Document, collection *crawler.UrlCollectio
 			Timeout: playwright.Float(10000),
 		})
 		if err != nil {
-			fmt.Println("Timeout waiting for product link:", err)
-			crawler.WritePageContentToFile(page)
+			crawler.App.Logger.Html(page, "Timeout waiting for product link")
 			continue
 		}
 
 		doc, err := crawler.GetPageDom(page)
 		if err != nil {
-			fmt.Println("Error getting page DOM:", err)
+			crawler.App.Logger.Error("Error getting page DOM:", err)
 			continue
 		}
 
@@ -47,9 +45,9 @@ func handleProducts(document *goquery.Document, collection *crawler.UrlCollectio
 
 		fullUrl := crawler.GetFullUrl(productLink)
 		if !exist {
-			fmt.Println("Failed to find product link")
+			crawler.App.Logger.Error("Failed to find product link")
 		} else {
-			fmt.Println("Product Link:", fullUrl)
+			crawler.App.Logger.Error("Product Link:", fullUrl)
 		}
 
 		// Close the modal
@@ -57,21 +55,20 @@ func handleProducts(document *goquery.Document, collection *crawler.UrlCollectio
 		if closeModal != nil {
 			err = closeModal.Click(playwright.LocatorClickOptions{Timeout: playwright.Float(5000)})
 			if err != nil {
-				fmt.Println("Failed to close modal:", err)
-				crawler.WritePageContentToFile(page)
+				crawler.App.Logger.Html(page, "Failed to close modal")
 			}
 		} else {
-			fmt.Println("Modal close button not found.")
+			crawler.App.Logger.Error("Modal close button not found.")
 		}
 
 		if exist {
 			urls = append(urls, crawler.UrlCollection{Url: fullUrl}) // Assuming you want to collect URLs
 		}
 
-		// Add a delay after every 15 items
+		// Add a delay after every 5 items
 		if (i+1)%5 == 0 {
-			fmt.Println("Sleeping for 3 seconds...")
-			time.Sleep(3 * time.Second)
+			crawler.App.Logger.Info("Sleeping for 3 seconds...")
+			time.Sleep(5 * time.Second)
 		}
 	}
 
@@ -83,18 +80,17 @@ func clickAndWaitButton(selector string, page playwright.Page) {
 		err := button.Click()
 		page.WaitForSelector(selector)
 		if err != nil {
-			fmt.Println("No more button available")
+			crawler.App.Logger.Info("No more button available")
 			break
 		}
 	}
 }
-func productCodeHandler(document *goquery.Document, url string) []string {
-	fmt.Println("productCodeHandler Url", url)
-	urlParts := strings.Split(strings.Trim(url, "/"), "/")
+func productCodeHandler(document *goquery.Document, urlCollection crawler.UrlCollection) []string {
+	urlParts := strings.Split(strings.Trim(urlCollection.Url, "/"), "/")
 	return []string{urlParts[len(urlParts)-1]}
 }
 
-func productNameHandler(document *goquery.Document, url string) string {
+func productNameHandler(document *goquery.Document, urlCollection crawler.UrlCollection) string {
 	return strings.Trim(document.Find("h2.ProductInfo_Head_Main_ProductName").Text(), " \n")
 }
 

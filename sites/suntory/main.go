@@ -3,6 +3,7 @@ package main
 import (
 	"crawlkit/constant"
 	"crawlkit/crawler"
+	"github.com/PuerkitoBio/goquery"
 )
 
 const siteName = "suntory"
@@ -20,40 +21,40 @@ func main() {
 
 }
 func handleDynamicCrawl(app *crawler.Crawler) {
-	//categorySelector := crawler.UrlSelector{
-	//	Selector:     "ul#drink_list, ul#liquor_list",
-	//	SingleResult: false,
-	//	FindSelector: "li a",
-	//	Attr:         "href",
-	//}
-	//subCategorySelector := crawler.UrlSelector{
-	//	Selector:     "ul.category_list li",
-	//	SingleResult: false,
-	//	FindSelector: "div.category_order h4 a",
-	//	Attr:         "href",
-	//	Handler: func(collection crawler.UrlCollection, fullUrl string, a *goquery.Selection) (string, map[string]interface{}) {
-	//		brand1 := a.Text()
-	//		return fullUrl, map[string]any{
-	//			"brand1": brand1,
-	//		}
-	//	},
-	//}
-	//productSelector := crawler.UrlSelector{
-	//	Selector:     "ul.category_list li",
-	//	SingleResult: false,
-	//	FindSelector: "div.category_order h4 a",
-	//	Attr:         "href",
-	//	Handler: func(urlCollection crawler.UrlCollection, fullUrl string, a *goquery.Selection) (string, map[string]interface{}) {
-	//		brand2 := a.Text()
-	//		return fullUrl, map[string]any{
-	//			"brand1": urlCollection.MetaData["brand1"],
-	//			"brand2": brand2,
-	//		}
-	//	},
-	//}
-	//app.Collection(constant.Categories).SetCrawlLimit(3).CrawlUrls(app.GetBaseCollection(), categorySelector)
-	//app.Collection(constant.SUB_CATEGORIES).SetCrawlLimit(5).CrawlUrls(constant.Categories, subCategorySelector)
-	//app.Collection(constant.Products).CrawlUrls(constant.SUB_CATEGORIES, productSelector)
+	categorySelector := crawler.UrlSelector{
+		Selector:     "ul#drink_list, ul#liquor_list",
+		SingleResult: false,
+		FindSelector: "li a",
+		Attr:         "href",
+	}
+	subCategorySelector := crawler.UrlSelector{
+		Selector:     "ul.category_list li",
+		SingleResult: false,
+		FindSelector: "div.category_order h4 a",
+		Attr:         "href",
+		Handler: func(collection crawler.UrlCollection, fullUrl string, a *goquery.Selection) (string, map[string]interface{}) {
+			brand1 := a.Text()
+			return fullUrl, map[string]any{
+				"brand1": brand1,
+			}
+		},
+	}
+	productSelector := crawler.UrlSelector{
+		Selector:     "ul.category_list li",
+		SingleResult: false,
+		FindSelector: "div.category_order h4 a",
+		Attr:         "href",
+		Handler: func(urlCollection crawler.UrlCollection, fullUrl string, a *goquery.Selection) (string, map[string]interface{}) {
+			brand2 := a.Text()
+			return fullUrl, map[string]any{
+				"brand1": urlCollection.MetaData["brand1"],
+				"brand2": brand2,
+			}
+		},
+	}
+	app.Collection(constant.Categories).SetCrawlLimit(3).CrawlUrls(app.GetBaseCollection(), categorySelector)
+	app.Collection(constant.SubCategories).SetCrawlLimit(5).CrawlUrls(constant.Categories, subCategorySelector)
+	app.Collection(constant.Products).CrawlUrls(constant.SubCategories, productSelector)
 
 	app.ProductDetailSelector = crawler.ProductDetailSelector{
 		Jan: getJanService,

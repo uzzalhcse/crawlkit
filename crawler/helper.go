@@ -94,12 +94,12 @@ func GetPageDom(page playwright.Page) (*goquery.Document, error) {
 	}
 	return document, nil
 }
-func WritePageContentToFile(page playwright.Page) error {
+func writePageContentToFile(page playwright.Page) error {
 	content, err := page.Content()
 	if err != nil {
 		return err
 	}
-	content = fmt.Sprintf("<!-- Page Url: %s -->\n%s", page.URL(), content)
+	content = fmt.Sprintf("<!-- Time: %v \n Page Url: %s -->\n%s", time.Now(), page.URL(), content)
 	filename := GenerateFilename(page.URL())
 	directory := filepath.Join("storage", "logs", "html", App.Name)
 	err = os.MkdirAll(directory, 0755)

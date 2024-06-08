@@ -13,6 +13,7 @@ func main() {
 		BrowserType:     "chromium",
 		ConcurrentLimit: 1,
 		BlockResources:  true,
+		BoostCrawling:   true,
 	})
 	app.Start()
 	defer app.Stop()

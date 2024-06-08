@@ -97,11 +97,8 @@ func NavigateToURL(page playwright.Page, url string) (*goquery.Document, error) 
 		WaitUntil: waitUntil,
 	})
 	if err != nil {
-		logErr := WritePageContentToFile(page)
-		if logErr != nil {
-			return nil, logErr
-		}
-		return nil, fmt.Errorf("failed to navigate to Url: %w", err)
+		App.Logger.Html(page, err.Error())
+		return nil, err
 	}
 	return GetPageDom(page)
 }

@@ -28,7 +28,6 @@ func (e *Engine) crawlWorker(urlChan <-chan UrlCollection, resultChan chan<- int
 
 		doc, err := NavigateToURL(page, urlCollection.Url)
 		if err != nil {
-			App.Logger.Error("Error navigating to URL:", err)
 			continue
 		}
 
