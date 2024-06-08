@@ -162,3 +162,8 @@ func extractUrls(results []bson.M) []string {
 	}
 	return urls
 }
+func (client *Client) Close() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return client.Disconnect(ctx)
+}

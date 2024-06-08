@@ -24,7 +24,6 @@ type Crawler struct {
 	BaseUrl               string
 	Config                *config.Config
 	pw                    *playwright.Playwright
-	browser               playwright.Browser
 	collection            string
 	url                   string
 	UrlSelectors          []UrlSelector
@@ -50,6 +49,8 @@ func NewCrawler(name, url string, engines ...Engine) *Crawler {
 				"googleapis.com",
 				"gstatic.com",
 			},
+			BoostCrawling: false,
+			ProxyServers:  []Proxy{},
 		}
 
 		// Override defaults with provided engine configuration if available
@@ -69,6 +70,13 @@ func NewCrawler(name, url string, engines ...Engine) *Crawler {
 			}
 			if eng.BlockResources {
 				defaultEngine.BlockResources = eng.BlockResources
+			}
+			if eng.BoostCrawling {
+				defaultEngine.BoostCrawling = eng.BoostCrawling
+				defaultEngine.ProxyServers = eng.getProxyList()
+			}
+			if len(eng.ProxyServers) > 0 {
+				defaultEngine.ProxyServers = eng.ProxyServers
 			}
 			defaultEngine.BlockedURLs = append(defaultEngine.BlockedURLs, eng.BlockedURLs...)
 		}
@@ -94,22 +102,16 @@ func (a *Crawler) Start() {
 		log.Fatalf("failed to initialize playwright: %v\n", err)
 	}
 
-	browser, err := GetBrowser(pw, a.engine.BrowserType)
-	if err != nil {
-		log.Fatalf("failed to launch browser: %v\n", err)
-	}
-
 	a.Client = client
 	a.pw = pw
-	a.browser = browser
 }
 
 func (a *Crawler) Stop() {
-	if a.browser != nil {
-		a.browser.Close()
-	}
 	if a.pw != nil {
 		a.pw.Stop()
+	}
+	if a.Client != nil {
+		a.Client.Close()
 	}
 	duration := time.Since(startTime)
 	slog.Info(fmt.Sprintf("Program stopped in ⚡ %v", duration))

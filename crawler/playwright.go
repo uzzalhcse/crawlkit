@@ -19,7 +19,7 @@ func GetPlaywright() (*playwright.Playwright, error) {
 	return pw, nil
 }
 
-func GetBrowser(pw *playwright.Playwright, browserType string) (playwright.Browser, error) {
+func GetBrowserPage(pw *playwright.Playwright, browserType string, proxy Proxy) (playwright.Browser, playwright.Page, error) {
 	var browser playwright.Browser
 	var err error
 
@@ -28,73 +28,12 @@ func GetBrowser(pw *playwright.Playwright, browserType string) (playwright.Brows
 	browserTypeLaunchOptions.Headless = playwright.Bool(!isLocalEnv)
 	browserTypeLaunchOptions.Devtools = playwright.Bool(isLocalEnv)
 
-	if App.Config.Site.Proxy != "" {
+	if len(App.engine.ProxyServers) > 0 {
 		// Set proxy options
 		browserTypeLaunchOptions.Proxy = &playwright.Proxy{
-			Server: App.Config.Site.Proxy,
-		}
-	}
-	switch browserType {
-	case "chromium":
-		browser, err = pw.Chromium.Launch(browserTypeLaunchOptions)
-	case "firefox":
-		browser, err = pw.Firefox.Launch(browserTypeLaunchOptions)
-	case "webkit":
-		browser, err = pw.WebKit.Launch(browserTypeLaunchOptions)
-	default:
-		return nil, fmt.Errorf("unsupported browser type: %s", browserType)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to launch browser: %w", err)
-	}
-	return browser, nil
-}
-
-func GetPage(browser playwright.Browser) (playwright.Page, error) {
-
-	page, err := browser.NewPage(playwright.BrowserNewPageOptions{
-		UserAgent: playwright.String(App.Config.Site.UserAgent),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create page: %w", err)
-	}
-
-	// Conditionally intercept and block resources based on configuration
-	if App.engine.BlockResources {
-		err := page.Route("**/*", func(route playwright.Route) {
-			req := route.Request()
-			resourceType := req.ResourceType()
-			url := req.URL()
-
-			// Check if the resource should be blocked based on resource type or URL
-			if shouldBlockResource(resourceType, url) {
-				route.Abort()
-			} else {
-				route.Continue()
-			}
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to set up request interception: %w", err)
-		}
-	}
-
-	return page, nil
-}
-
-func GetBrowserPage(pw *playwright.Playwright, browserType string, proxy string) (playwright.Browser, playwright.Page, error) {
-	var browser playwright.Browser
-	var err error
-
-	isLocalEnv := App.Config.Site.SiteEnv == Local
-	var browserTypeLaunchOptions playwright.BrowserTypeLaunchOptions
-	browserTypeLaunchOptions.Headless = playwright.Bool(!isLocalEnv)
-	browserTypeLaunchOptions.Devtools = playwright.Bool(isLocalEnv)
-
-	if App.Config.Site.Proxy != "" {
-		// Set proxy options
-		browserTypeLaunchOptions.Proxy = &playwright.Proxy{
-			Server: proxy,
+			Server:   proxy.Server,
+			Username: playwright.String(proxy.Username),
+			Password: playwright.String(proxy.Password),
 		}
 	}
 	switch browserType {

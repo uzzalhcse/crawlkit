@@ -11,10 +11,12 @@ const siteUrl = "https://aqua-has.com"
 func main() {
 	app := crawler.NewCrawler(siteName, siteUrl, crawler.Engine{
 		BrowserType:     "chromium",
-		ConcurrentLimit: 2,
+		ConcurrentLimit: 5,
 		DevCrawlLimit:   100,
 		BlockResources:  true,
 		BlockedURLs:     []string{},
+		BoostCrawling:   true,
+		//ProxyServers:    []crawler.Proxy{},
 	})
 	app.Start()
 	defer app.Stop()
@@ -40,7 +42,7 @@ func handleDynamicCrawl(app *crawler.Crawler) {
 			ToCollection:   constant.Products,
 			FromCollection: constant.Categories,
 		})
-	app.StartUrlCrawling()
+	//app.StartUrlCrawling()
 
 	app.ProductDetailSelector = crawler.ProductDetailSelector{
 		Jan: "",

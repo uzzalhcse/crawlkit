@@ -11,8 +11,8 @@ const siteUrl = "https://markt-mall.jp/"
 func main() {
 	app := crawler.NewCrawler(siteName, siteUrl, crawler.Engine{
 		BrowserType:     "chromium",
-		ConcurrentLimit: 1,
-		DevCrawlLimit:   1,
+		ConcurrentLimit: 10,
+		DevCrawlLimit:   100,
 		IsDynamic:       true,
 		BlockResources:  true,
 	})

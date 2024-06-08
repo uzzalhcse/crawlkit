@@ -5,12 +5,9 @@ import (
 	"reflect"
 )
 
-func handleProductDetail(document *goquery.Document, urlCollection UrlCollection, err error) *ProductDetail {
+func handleProductDetail(document *goquery.Document, urlCollection UrlCollection) *ProductDetail {
 	// Create a new ProductDetail struct
 	productDetail := &ProductDetail{}
-	if err != nil {
-		return productDetail
-	}
 
 	// Get the reflect.Value of the ProductDetailSelector struct
 	productDetailSelector := reflect.ValueOf(App.ProductDetailSelector)
@@ -69,13 +66,13 @@ func handleSingleSelector(document *goquery.Document, selector *SingleSelector) 
 }
 
 func handleMultiSelectors(document *goquery.Document, selectors *MultiSelectors) []interface{} {
-	var images []interface{}
+	var items []interface{}
 
 	// Helper function to append images if the specified attribute exists
 	appendImages := func(selection *goquery.Selection, attr string) {
 		selection.Each(func(i int, s *goquery.Selection) {
 			if url, ok := s.Attr(attr); ok {
-				images = append(images, url)
+				items = append(items, url)
 			}
 		})
 	}
@@ -85,5 +82,5 @@ func handleMultiSelectors(document *goquery.Document, selectors *MultiSelectors)
 		appendImages(document.Find(selector.Query), selector.Attr)
 	}
 
-	return images
+	return items
 }

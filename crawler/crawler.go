@@ -5,92 +5,86 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/playwright-community/playwright-go"
 	"log"
-	"log/slog"
-	"reflect"
 	"sync"
 )
 
-// Proxies to be used
-var proxies = []string{
-	"http://34.146.11.125:3000",  // proxy-server-1
-	"http://34.146.155.165:3000", // proxy-server-2
-	"http://34.143.176.68:3000",  // proxy-server-3
+// crawlWorker is a worker function that handles crawling URLs and processing results
+func (e *Engine) crawlWorker(urlChan <-chan UrlCollection, resultChan chan<- interface{}, proxy Proxy, processor interface{}, isLocalEnv bool) {
+	browser, page, err := GetBrowserPage(App.pw, App.engine.BrowserType, proxy)
+	if err != nil {
+		log.Fatalf("failed to initialize browser with proxy: %v\n", err)
+	}
+	defer browser.Close()
+	defer page.Close()
+
+	for {
+		urlCollection, more := <-urlChan
+		if !more {
+			break
+		}
+		if isLocalEnv && len(resultChan) >= App.engine.DevCrawlLimit {
+			return
+		}
+		log.Printf("Crawling %s using proxy %s", urlCollection.Url, proxy.Server)
+
+		doc, err := NavigateToURL(page, urlCollection.Url)
+		if err != nil {
+			log.Println("Error navigating to URL:", err)
+			continue
+		}
+
+		var results interface{}
+		switch v := processor.(type) {
+		case func(*goquery.Document, *UrlCollection, playwright.Page) []UrlCollection:
+			results = v(doc, &urlCollection, page)
+
+		case UrlSelector:
+			results = processDocument(doc, v, urlCollection)
+
+		case ProductDetailSelector:
+			results = handleProductDetail(doc, urlCollection)
+
+		default:
+			log.Fatalf("Unsupported processor type: %T", processor)
+		}
+
+		select {
+		case resultChan <- results:
+		default:
+			log.Println("Result channel is full, dropping result")
+		}
+	}
 }
 
-// CrawlUrls handles both dynamic crawling and URL extraction based on the provided function or selector
 func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 	urlCollections := App.GetUrlCollections(collection)
 	var items []UrlCollection
 	isLocalEnv := App.Config.Site.SiteEnv == Local
-	shouldContinue := func() bool {
-		return !isLocalEnv || len(items) < App.engine.DevCrawlLimit
-	}
 
 	var wg sync.WaitGroup
 	urlChan := make(chan UrlCollection, len(urlCollections))
-	resultChan := make(chan []UrlCollection, len(urlCollections))
+	resultChan := make(chan interface{}, len(urlCollections))
 
 	for _, urlCollection := range urlCollections {
 		urlChan <- urlCollection
 	}
 	close(urlChan)
 
-	proxyCount := len(proxies)
+	proxyCount := len(e.ProxyServers)
 	batchSize := App.engine.ConcurrentLimit
+	totalUrls := len(urlCollections)
+	goroutineCount := min(max(proxyCount, 1)*batchSize, totalUrls) // Determine the required number of goroutines
 
-	for i := 0; i < proxyCount; i++ {
+	for i := 0; i < goroutineCount; i++ {
+		proxy := Proxy{}
+		if proxyCount > 0 {
+			proxy = e.ProxyServers[i%proxyCount]
+		}
 		wg.Add(1)
-		go func(proxyIndex int) {
+		go func(proxy Proxy) {
 			defer wg.Done()
-
-			browser, page, err := GetBrowserPage(App.pw, App.engine.BrowserType, proxies[proxyIndex])
-			if err != nil {
-				log.Fatalf("failed to initialize browser with proxy: %v\n", err)
-			}
-			defer browser.Close()
-
-			defer page.Close()
-			for j := 0; j < batchSize; j++ {
-				urlCollection, more := <-urlChan
-				if !more {
-					break
-				}
-				if !shouldContinue() {
-					break
-				}
-				log.Printf("Crawling %s using proxy %s", urlCollection.Url, proxies[proxyIndex])
-
-				doc, err := NavigateToURL(page, urlCollection.Url)
-				if err != nil {
-					log.Println("Error navigating to URL:", err)
-					continue
-				}
-
-				var results []UrlCollection
-				switch v := processor.(type) {
-				case func(*goquery.Document, *UrlCollection, playwright.Page) []UrlCollection:
-					results = v(doc, &urlCollection, page)
-
-				case UrlSelector:
-					results = processDocument(doc, v, urlCollection)
-
-				default:
-					funcValue := reflect.ValueOf(processor)
-					funcType := funcValue.Type()
-					if funcType.Kind() == reflect.Func {
-						log.Fatalf("Invalid function signature: expected func(*goquery.Document, *UrlCollection, playwright.Page) []UrlCollection, got %v", funcType)
-					} else {
-						log.Fatalf("Unsupported type: %T", processor)
-					}
-				}
-
-				select {
-				case resultChan <- results:
-				default:
-					log.Println("Result channel is full, dropping result")
-				}
-			}
-		}(i)
+			e.crawlWorker(urlChan, resultChan, proxy, processor, isLocalEnv)
+		}(proxy)
 	}
 
 	go func() {
@@ -99,64 +93,46 @@ func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 	}()
 
 	for results := range resultChan {
-		items = append(items, results...)
-		for _, item := range results {
-			App.Insert(items, item.Url)
+		switch v := results.(type) {
+		case []UrlCollection:
+			items = append(items, v...)
+			for _, item := range v {
+				App.Insert(items, item.Url)
+			}
 		}
 	}
 
 	log.Printf("Total %v urls: %v", App.collection, len(items))
 }
 
-// CrawlPageDetail handles crawling of page details with concurrency
 func (e *Engine) CrawlPageDetail(collection string) {
 	urlCollections := App.GetUrlCollections(collection)
 	isLocalEnv := App.Config.Site.SiteEnv == Local
 
 	var wg sync.WaitGroup
 	urlChan := make(chan UrlCollection, len(urlCollections))
-	resultChan := make(chan *ProductDetail, len(urlCollections))
+	resultChan := make(chan interface{}, len(urlCollections))
 
 	for _, urlCollection := range urlCollections {
 		urlChan <- urlCollection
 	}
 	close(urlChan)
 
-	proxyCount := len(proxies)
+	proxyCount := len(e.ProxyServers)
 	batchSize := App.engine.ConcurrentLimit
+	totalUrls := len(urlCollections)
+	goroutineCount := min(max(proxyCount, 1)*batchSize, totalUrls) // Determine the required number of goroutines
 
-	for i := 0; i < proxyCount; i++ {
+	for i := 0; i < goroutineCount; i++ {
+		proxy := Proxy{}
+		if proxyCount > 0 {
+			proxy = e.ProxyServers[i%proxyCount]
+		}
 		wg.Add(1)
-		go func(proxyIndex int) {
+		go func(proxy Proxy) {
 			defer wg.Done()
-
-			browser, page, err := GetBrowserPage(App.pw, App.engine.BrowserType, proxies[proxyIndex])
-			if err != nil {
-				log.Fatalf("failed to initialize browser with proxy: %v\n", err)
-			}
-			defer browser.Close()
-
-			defer page.Close()
-
-			for j := 0; j < batchSize; j++ {
-				urlCollection, more := <-urlChan
-				if !more {
-					break
-				}
-				if isLocalEnv && len(resultChan) >= App.engine.DevCrawlLimit {
-					return
-				}
-				log.Printf("Crawling %s using proxy %s", urlCollection.Url, proxies[proxyIndex])
-
-				document, err := NavigateToURL(page, urlCollection.Url)
-				productDetail := handleProductDetail(document, urlCollection, err)
-				select {
-				case resultChan <- productDetail:
-				default:
-					log.Println("Result channel is full, dropping product detail")
-				}
-			}
-		}(i)
+			e.crawlWorker(urlChan, resultChan, proxy, App.ProductDetailSelector, isLocalEnv)
+		}(proxy)
 	}
 
 	go func() {
@@ -165,16 +141,19 @@ func (e *Engine) CrawlPageDetail(collection string) {
 	}()
 
 	total := 0
-	for productDetail := range resultChan {
-		fmt.Println("Saving Url", productDetail.Url)
-		App.SaveProductDetail(productDetail)
-		total++
-		if isLocalEnv && total >= App.engine.DevCrawlLimit {
-			break
+	for results := range resultChan {
+		switch v := results.(type) {
+		case *ProductDetail:
+			fmt.Println("Saving Url", v.Url)
+			App.SaveProductDetail(v)
+			total++
+			if isLocalEnv && total >= App.engine.DevCrawlLimit {
+				break
+			}
 		}
 	}
 
-	slog.Info(fmt.Sprintf("Total %v %v Inserted ", total, App.collection))
+	log.Printf("Total %v %v Inserted ", total, App.collection)
 }
 
 func (a *Crawler) PageSelector(selector UrlSelector) *Crawler {
