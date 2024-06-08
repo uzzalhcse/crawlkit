@@ -8,7 +8,8 @@ import (
 	"sync"
 )
 
-// crawlWorker is a worker function that handles crawling URLs and processing results
+// crawlWorker is a worker function that handles crawling URLs and processing results.
+// It uses the specified proxy to navigate to URLs and process the results using the provided processor function.
 func (e *Engine) crawlWorker(urlChan <-chan UrlCollection, resultChan chan<- interface{}, proxy Proxy, processor interface{}, isLocalEnv bool) {
 	browser, page, err := GetBrowserPage(App.pw, App.engine.BrowserType, proxy)
 	if err != nil {
@@ -56,6 +57,8 @@ func (e *Engine) crawlWorker(urlChan <-chan UrlCollection, resultChan chan<- int
 	}
 }
 
+// CrawlUrls initiates the crawling process for the URLs from the specified collection.
+// It distributes the work among multiple goroutines and uses proxies if available.
 func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 	urlCollections := App.GetUrlCollections(collection)
 	var items []UrlCollection
@@ -105,6 +108,8 @@ func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 	log.Printf("Total %v urls: %v", App.collection, len(items))
 }
 
+// CrawlPageDetail initiates the crawling process for detailed page information from the specified collection.
+// It distributes the work among multiple goroutines and uses proxies if available.
 func (e *Engine) CrawlPageDetail(collection string) {
 	urlCollections := App.GetUrlCollections(collection)
 	isLocalEnv := App.Config.Site.SiteEnv == Local
@@ -156,11 +161,13 @@ func (e *Engine) CrawlPageDetail(collection string) {
 	log.Printf("Total %v %v Inserted ", total, App.collection)
 }
 
+// PageSelector adds a new URL selector to the crawler.
 func (a *Crawler) PageSelector(selector UrlSelector) *Crawler {
 	a.UrlSelectors = append(a.UrlSelectors, selector)
 	return a
 }
 
+// StartUrlCrawling initiates the URL crawling process for all added selectors.
 func (a *Crawler) StartUrlCrawling() *Crawler {
 	for _, selector := range a.UrlSelectors {
 		a.Collection(selector.ToCollection).

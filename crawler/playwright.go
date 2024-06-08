@@ -6,6 +6,8 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+// GetPlaywright initializes and runs the Playwright framework.
+// It returns a Playwright instance if successful, otherwise returns an error.
 func GetPlaywright() (*playwright.Playwright, error) {
 	err := playwright.Install()
 	if err != nil {
@@ -19,6 +21,9 @@ func GetPlaywright() (*playwright.Playwright, error) {
 	return pw, nil
 }
 
+// GetBrowserPage launches a browser instance and creates a new page using the Playwright framework.
+// It supports Chromium, Firefox, and WebKit browsers, and can configure proxy settings if provided.
+// It returns the browser and page instances, or an error if the operation fails.
 func GetBrowserPage(pw *playwright.Playwright, browserType string, proxy Proxy) (playwright.Browser, playwright.Page, error) {
 	var browser playwright.Browser
 	var err error
@@ -80,6 +85,9 @@ func GetBrowserPage(pw *playwright.Playwright, browserType string, proxy Proxy) 
 	return browser, page, nil
 }
 
+// NavigateToURL navigates to a specified URL using the given Playwright page.
+// It waits until the page is fully loaded and returns a goquery document representing the DOM.
+// If navigation fails, it logs the page content to a file and returns an error.
 func NavigateToURL(page playwright.Page, url string) (*goquery.Document, error) {
 	waitUntil := playwright.WaitUntilStateDomcontentloaded
 	if App.engine.IsDynamic {
@@ -88,14 +96,13 @@ func NavigateToURL(page playwright.Page, url string) (*goquery.Document, error) 
 
 	_, err := page.Goto(url, playwright.PageGotoOptions{
 		WaitUntil: waitUntil,
-		//Timeout:   playwright.Float(0), // Increase timeout to 60 seconds
 	})
 	if err != nil {
 		logErr := WritePageContentToFile(page)
 		if logErr != nil {
 			return nil, logErr
 		}
-		//return nil, fmt.Errorf("failed to navigate to Url: %w", err)
+		return nil, fmt.Errorf("failed to navigate to Url: %w", err)
 	}
 	return GetPageDom(page)
 }
