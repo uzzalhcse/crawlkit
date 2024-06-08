@@ -15,7 +15,6 @@ func GetPlaywright() (*playwright.Playwright, error) {
 	}
 	pw, err := playwright.Run()
 	if err != nil {
-		fmt.Printf("failed to initialize playwright: %v\n", err)
 		return nil, err
 	}
 	return pw, nil

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/playwright-community/playwright-go"
-	"log"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -43,7 +42,7 @@ func processSelection(selection *goquery.Selection, selector UrlSelector, urlCol
 	selection.Find(selector.FindSelector).Each(func(j int, s *goquery.Selection) {
 		attrValue, ok := s.Attr(selector.Attr)
 		if !ok {
-			log.Println("Attribute not found.")
+			App.Logger.Error("Attribute not found. %v", selector.Attr)
 		} else {
 			fullUrl := GetFullUrl(attrValue)
 			if selector.Handler != nil {
@@ -102,7 +101,7 @@ func WritePageContentToFile(page playwright.Page) error {
 	}
 	content = fmt.Sprintf("<!-- Page Url: %s -->\n%s", page.URL(), content)
 	filename := GenerateFilename(page.URL())
-	directory := filepath.Join("storage", "logs", App.Name)
+	directory := filepath.Join("storage", "logs", "html", App.Name)
 	err = os.MkdirAll(directory, 0755)
 	if err != nil {
 		return err
@@ -164,7 +163,7 @@ func shouldBlockResource(resourceType string, url string) bool {
 func getBaseUrl(urlString string) string {
 	parsedURL, err := url.Parse(urlString)
 	if err != nil {
-		fmt.Println("failed to parse Url:", "Error", err)
+		App.Logger.Error("failed to parse Url:", "Error", err)
 		return ""
 	}
 

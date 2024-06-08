@@ -1,10 +1,8 @@
 package crawler
 
 import (
-	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/playwright-community/playwright-go"
-	"log"
 	"sync"
 )
 
@@ -13,7 +11,7 @@ import (
 func (e *Engine) crawlWorker(urlChan <-chan UrlCollection, resultChan chan<- interface{}, proxy Proxy, processor interface{}, isLocalEnv bool) {
 	browser, page, err := GetBrowserPage(App.pw, App.engine.BrowserType, proxy)
 	if err != nil {
-		log.Fatalf("failed to initialize browser with proxy: %v\n", err)
+		App.Logger.Fatal("failed to initialize browser with proxy: %v\n", err)
 	}
 	defer browser.Close()
 	defer page.Close()
@@ -26,11 +24,11 @@ func (e *Engine) crawlWorker(urlChan <-chan UrlCollection, resultChan chan<- int
 		if isLocalEnv && len(resultChan) >= App.engine.DevCrawlLimit {
 			return
 		}
-		log.Printf("Crawling %s using proxy %s", urlCollection.Url, proxy.Server)
+		App.Logger.Info("Crawling %s using proxy %s", urlCollection.Url, proxy.Server)
 
 		doc, err := NavigateToURL(page, urlCollection.Url)
 		if err != nil {
-			log.Println("Error navigating to URL:", err)
+			App.Logger.Error("Error navigating to URL:", err)
 			continue
 		}
 
@@ -46,13 +44,13 @@ func (e *Engine) crawlWorker(urlChan <-chan UrlCollection, resultChan chan<- int
 			results = handleProductDetail(doc, urlCollection)
 
 		default:
-			log.Fatalf("Unsupported processor type: %T", processor)
+			App.Logger.Fatal("Unsupported processor type: %T", processor)
 		}
 
 		select {
 		case resultChan <- results:
 		default:
-			log.Println("Result channel is full, dropping result")
+			App.Logger.Info("Channel is full, dropping Item")
 		}
 	}
 }
@@ -105,7 +103,7 @@ func (e *Engine) CrawlUrls(collection string, processor interface{}) {
 		}
 	}
 
-	log.Printf("Total %v urls: %v", App.collection, len(items))
+	App.Logger.Info("Total %v urls: %v", App.collection, len(items))
 }
 
 // CrawlPageDetail initiates the crawling process for detailed page information from the specified collection.
@@ -149,7 +147,6 @@ func (e *Engine) CrawlPageDetail(collection string) {
 	for results := range resultChan {
 		switch v := results.(type) {
 		case *ProductDetail:
-			fmt.Println("Saving Url", v.Url)
 			App.SaveProductDetail(v)
 			total++
 			if isLocalEnv && total >= App.engine.DevCrawlLimit {
@@ -158,7 +155,7 @@ func (e *Engine) CrawlPageDetail(collection string) {
 		}
 	}
 
-	log.Printf("Total %v %v Inserted ", total, App.collection)
+	App.Logger.Info("Total %v %v Inserted ", total, App.collection)
 }
 
 // PageSelector adds a new URL selector to the crawler.

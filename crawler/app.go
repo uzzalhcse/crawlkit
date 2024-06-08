@@ -2,10 +2,7 @@ package crawler
 
 import (
 	"crawlkit/config"
-	"fmt"
 	"github.com/playwright-community/playwright-go"
-	"log"
-	"log/slog"
 	"sync"
 	"time"
 )
@@ -29,12 +26,14 @@ type Crawler struct {
 	UrlSelectors          []UrlSelector
 	ProductDetailSelector ProductDetailSelector
 	engine                *Engine
+	Logger                *DefaultLogger
 }
 
 func NewCrawler(name, url string, engines ...Engine) *Crawler {
 	Once.Do(func() {
 		startTime = time.Now()
-		slog.Info("Program started! 🚀")
+		logger := NewDefaultLogger(name)
+		logger.Info("Program started! 🚀")
 
 		// Create default engine configuration
 		defaultEngine := Engine{
@@ -88,6 +87,7 @@ func NewCrawler(name, url string, engines ...Engine) *Crawler {
 			Config:     config.NewConfig(),
 			collection: App.GetBaseCollection(),
 			engine:     &defaultEngine,
+			Logger:     logger,
 		}
 	})
 
@@ -99,7 +99,7 @@ func (a *Crawler) Start() {
 	client.NewSite()
 	pw, err := GetPlaywright()
 	if err != nil {
-		log.Fatalf("failed to initialize playwright: %v\n", err)
+		a.Logger.Fatal("failed to initialize playwright: %v\n", err)
 	}
 
 	a.Client = client
@@ -114,7 +114,7 @@ func (a *Crawler) Stop() {
 		a.Client.Close()
 	}
 	duration := time.Since(startTime)
-	slog.Info(fmt.Sprintf("Program stopped in ⚡ %v", duration))
+	a.Logger.Info("Program stopped in ⚡ %v", duration)
 }
 
 func (a *Crawler) Collection(collection string) *Engine {
